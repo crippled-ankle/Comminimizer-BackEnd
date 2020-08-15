@@ -13,8 +13,8 @@ public class FXQuery {
     static final String FX_RATE_QUERY_URL_SUFFIX = "ADD_HERE";
 
     public FXQuery(String originCode, String destinationCode) {
-        originCode = originCode;
-        destinationCode = destinationCode;
+        this.originCode = originCode;
+        this.destinationCode = destinationCode;
     }
 
     //TODO Add rate cache in DB
@@ -25,7 +25,7 @@ public class FXQuery {
         }
         //fetch rate from Bank of Canada API
         String seriesName = "FX" + originCode + destinationCode;
-        String url = FX_RATE_QUERY_URL_PREFIX + seriesName + FX_RATE_QUERY_URL_SUFFIX;
+        String url = FX_RATE_QUERY_URL_PREFIX + seriesName.replace("\"", "") + FX_RATE_QUERY_URL_SUFFIX;
         RestTemplate rt = new RestTemplate();
         Double rate = -1.0;
         try {

@@ -24,7 +24,7 @@ public class Instrument {
         // TODO encapsulate configuration
         RestTemplate rt = new RestTemplate();
         // Alpha Vantage Quote
-        String url = INSTRUMENT_QUOTE_URL_PREFIX + this.iden + INSTRUMENT_QUOTE_URL_SUFFIX;
+        String url = INSTRUMENT_QUOTE_URL_PREFIX + this.iden.replace("\"", "") + INSTRUMENT_QUOTE_URL_SUFFIX;
         try {
             String result = rt.getForObject(url, String.class);
             JsonParser jp = new JsonParser();
