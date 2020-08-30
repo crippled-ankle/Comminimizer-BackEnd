@@ -20,9 +20,8 @@ public class CommissionQuery{
     public CommissionQuery(String rb){
         JsonParser jp = new JsonParser();
         rb = rb.replace("\\", "");
-        JsonElement je = jp.parse(rb.substring(1, rb.length() - 1));
+        JsonElement je = jp.parse(rb.substring(1, rb.length() - 1)); //TODO: justify the reason to truncate
         JsonObject jo = je.getAsJsonObject();
-        System.out.println(jo.toString());
         Currency = jo.get("Currency").toString();
         Instr = jo.get("Instr").toString();
         InstrType = Integer.parseInt(jo.get("InstrType").toString());

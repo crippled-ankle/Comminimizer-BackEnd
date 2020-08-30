@@ -7,14 +7,14 @@ import org.springframework.web.bind.annotation.*;
 public class ServiceEndpoint {
 
     @Autowired
-    private CommissionSearchService ss;
+    private CommissionSearchService css;
 
     @Autowired
     private InstrumentSearchService iss;
 
     @PostMapping("/search")
     public String searchCom(@RequestBody String requestBody){
-        return ss.queryCommissionDB(requestBody);
+        return css.queryCommissionDB(requestBody);
     }
 
     @GetMapping("/search-instrument/{iden}")

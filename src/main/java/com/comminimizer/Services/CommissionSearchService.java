@@ -4,6 +4,7 @@ import com.comminimizer.Query.CommissionQuery;
 import com.comminimizer.Query.FXQuery;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.sql.*;
@@ -11,6 +12,10 @@ import java.util.PriorityQueue;
 
 @Service
 public class CommissionSearchService {
+
+    @Autowired
+    FXRateService fxs;
+
     static final String UNIFIED_CURRENCY_CODE = "CAD";
     static final Integer RESULT_INITIAL_CAPACITY = 25;
     static final String DB_JDBC_CONNECTION_LINK = "ADD_HERE";
@@ -18,10 +23,10 @@ public class CommissionSearchService {
     static final String DB_PASSWORD = "ADD_HERE";
 
     public class Quote {
-       Double origin;
-       String originCode;
-       Double unified;
-       String unifiedCode;
+        Double origin;
+        String originCode;
+        Double unified;
+        String unifiedCode;
     }
 
     //TODO refine the calculation of trade value as commission currency can be different than instrument quoting currency
@@ -54,15 +59,12 @@ public class CommissionSearchService {
         if(maxComType == 2) { // trade value percentage
             maxCom = maxCom * tradeValue;
         }
-        // IB #7, applicable to US only
-        if(maxCom < minCom){ // if max < min, bring min down to max value so max is assessed
-            minCom = maxCom;
-        }
+
         ret.origin = Math.min(maxCom, ret.origin);
         ret.origin += additionalCost;
         ret.origin = Math.max(minCom, ret.origin);
         FXQuery q = new FXQuery(ret.originCode, ret.unifiedCode);
-        ret.unified = ret.origin * q.getRate();
+        ret.unified = ret.origin * fxs.getRate(q);
         return ret;
     }
 
@@ -89,15 +91,14 @@ public class CommissionSearchService {
                                         "and c.Broker_ID = b.ID\n" +
                                         "and at.ID = c.Account_Type\n" +
                                         "and cc.ID = c.Currency\n" +
-                                        "and (c.Trade_Value_Range_Lower is null or (c.Trade_Value_Range_Lower <=" + tradeValue + "and c.Trade_Value_Range_Upper >=" + tradeValue + ") )\n" +
-                                        "and (c.Instrument_Price_Lower is null or (c.Instrument_Price_Lower <=" + instrPrice + "and c.Instrument_Price_Upper >=" + instrPrice + ") )\n" +
-                                        "and (c.Number_Unit_Lower is null or (c.Number_Unit_Lower <=" + quantity + "and c.Number_Unit_Upper >=" + quantity + ") )\n" +
+                                        "and (c.Trade_Value_Range_Lower is null or (c.Trade_Value_Range_Lower <=" + tradeValue + "and (c.Trade_Value_Range_Upper >=" + tradeValue + " or c.Trade_Value_Range_Upper is NULL)) )\n" +
+                                        "and (c.Instrument_Price_Lower is null or (c.Instrument_Price_Lower <=" + instrPrice + " and (c.Instrument_Price_Upper >=" + instrPrice + " or c.Instrument_Price_Upper is NULL)) )\n" +
+                                        "and (c.Number_Unit_Lower is null or (c.Number_Unit_Lower <=" + quantity + "and (c.Number_Unit_Upper >=" + quantity + " or c.Number_Unit_Upper is NULL)) )\n" +
                                         "and at.Description in (" + accountTypeQuery + ")\n" +
                                         "and m.Description = " + marketQuery + ";";
-        String connectionUrl = DB_JDBC_CONNECTION_LINK;
         PriorityQueue<JsonObject> pq = new PriorityQueue<>(RESULT_INITIAL_CAPACITY, this::compare);
         JsonArray ja = new JsonArray();
-        try (Connection conn = DriverManager.getConnection(connectionUrl, DB_USERNAME, DB_PASSWORD);
+        try (Connection conn = DriverManager.getConnection(DB_JDBC_CONNECTION_LINK, DB_USERNAME, DB_PASSWORD);
              PreparedStatement ps = conn.prepareStatement(sqlFindAllComEntries);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
