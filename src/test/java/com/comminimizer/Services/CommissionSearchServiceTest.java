@@ -11,12 +11,6 @@ public class CommissionSearchServiceTest {
     private CommissionSearchService ss;
 
     @Test
-    void testCalculateTradeValue() throws Exception {
-        Double t1Res = ss.calculateTradeValue(2.0, 50.0);
-        assert t1Res == 100.0 : "Wrong Trade Value Expected: 100.0 Got: " + t1Res;
-    }
-
-    @Test
     void testCalculateCom() throws Exception {
         CommissionQuery test1 = new CommissionQuery(" {\"Instr\": \"DOL.TRT\", \"InstrType\": 1, \"Market\": \"Toronto\", \"Currency\": \"CAD\", \"Quantity\": 100, \"QuantityType\": \"shares\", \"AccountType\": 3} ");
         Double t1Res = ss.calculateCom(test1,1, 6.88, "CAD", 6.88, 6.88, 5000.0, 1, 0, 0.0).origin;

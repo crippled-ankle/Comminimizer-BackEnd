@@ -5,6 +5,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 public class CommissionQuery{
     Integer AccountType;
     String Currency;
@@ -13,9 +17,12 @@ public class CommissionQuery{
     Integer InstrType;
     String Region;
     Double Quantity;
+    Double TradeValue;
+    String MarketQuery;
+    List<String> AccountTypeQuery;
 
-    static final String REGULAR_ACCOUNT = "'Regular'";
-    static final String REGISTERED_ACCOUNT = "'RRSP', 'TFSA'";
+    static final List<String> REGULAR_ACCOUNT = Arrays.asList("Regular");
+    static final List<String> REGISTERED_ACCOUNT = Arrays.asList("RRSP", "TFSA");
 
     public CommissionQuery(String rb){
         JsonParser jp = new JsonParser();
@@ -31,31 +38,36 @@ public class CommissionQuery{
         Instrument i = new Instrument(Instr, 1); // TODO set proper iden type
         i.setAttrFromSearch();
         InstrPrice = i.referencePrice;
+        setTradeValue();
+        setMarketQuery();
+        setAccountTypeQuery();
     }
 
     //AccountType: 1 - Regular Only, 2 - Tax Shelter Only, 3 - All
-    public String getAccountTypeQuery(){
-        String ret = "";
+    void setAccountTypeQuery(){
+        List<String> ret = new java.util.ArrayList<>(Collections.emptyList());
         if(this.AccountType == 1){
-            ret += REGULAR_ACCOUNT;
+            ret.addAll(REGULAR_ACCOUNT);
         } else if(this.AccountType == 2){
-            ret += REGISTERED_ACCOUNT;
+            ret.addAll(REGISTERED_ACCOUNT);
         } else if(this.AccountType == 3){
-            ret += REGULAR_ACCOUNT + ", " + REGISTERED_ACCOUNT;
+            ret.addAll(REGULAR_ACCOUNT);
+            ret.addAll(REGISTERED_ACCOUNT);
         }
-        return ret;
+        this.AccountTypeQuery = ret;
+    }
+
+    //TODO refine the calculation of trade value as commission currency can be different than instrument quoting currency
+    void setTradeValue() {
+        this.TradeValue = this.Quantity * this.InstrPrice;
     }
 
     //TODO Add region mapping (know the API first)
-    public String getRegionMapping(String r){
-        if(r.equals("\"Toronto\""))
-            return "Canada";
+    void setMarketQuery(){
+        if(this.Region.equals("\"Toronto\""))
+            this.MarketQuery =  "Canada";
         else
-            return r.replace("\"", "");
-    }
-
-    public String getMarketQuery(){
-        return "'" + getRegionMapping(this.Region) + "'";
+            this.MarketQuery =  this.Region.replace("\"", "");
     }
 
     public Double getQuantity() {
@@ -64,5 +76,17 @@ public class CommissionQuery{
 
     public Double getInstrPrice() {
         return InstrPrice;
+    }
+
+    public Double getTradeValue() {
+        return TradeValue;
+    }
+
+    public List<String> getAccountTypeQuery() {
+        return AccountTypeQuery;
+    }
+
+    public String getMarketQuery() {
+        return MarketQuery;
     }
 }

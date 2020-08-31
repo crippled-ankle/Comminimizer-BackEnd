@@ -5,9 +5,13 @@ import com.comminimizer.Query.FXQuery;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
-
-import java.sql.*;
+import javax.sql.DataSource;
 import java.util.PriorityQueue;
 
 @Service
@@ -22,16 +26,20 @@ public class CommissionSearchService {
     static final String DB_USERNAME = "ADD_HERE";
     static final String DB_PASSWORD = "ADD_HERE";
 
+    @Bean
+    public DataSource getDataSource() {
+        DataSourceBuilder dataSourceBuilder = DataSourceBuilder.create();
+        dataSourceBuilder.username(DB_USERNAME);
+        dataSourceBuilder.password(DB_PASSWORD);
+        dataSourceBuilder.url(DB_JDBC_CONNECTION_LINK);
+        return dataSourceBuilder.build();
+    }
+
     public class Quote {
         Double origin;
         String originCode;
         Double unified;
         String unifiedCode;
-    }
-
-    //TODO refine the calculation of trade value as commission currency can be different than instrument quoting currency
-    public Double calculateTradeValue(Double quantity, Double instrPrice) {
-        return quantity * instrPrice;
     }
 
     public Quote calculateCom(CommissionQuery s,
@@ -80,53 +88,48 @@ public class CommissionSearchService {
 
     public String queryCommissionDB(String requestBody) {
         CommissionQuery s = new CommissionQuery(requestBody);
-        String accountTypeQuery = s.getAccountTypeQuery();
-        String marketQuery = s.getMarketQuery();
-        Double instrPrice = s.getInstrPrice();
-        Double quantity = s.getQuantity();
-        Double tradeValue = calculateTradeValue(quantity, instrPrice);
         String sqlFindAllComEntries = "select b.Name, c.*, at.Description as Account_Type_Desc, cc.Code as Currency_Code\n" +
                                         "from commission c, market m, broker b, account_type at, currency cc\n" +
                                         "where c.Market = m.ID\n" +
                                         "and c.Broker_ID = b.ID\n" +
                                         "and at.ID = c.Account_Type\n" +
                                         "and cc.ID = c.Currency\n" +
-                                        "and (c.Trade_Value_Range_Lower is null or (c.Trade_Value_Range_Lower <=" + tradeValue + "and (c.Trade_Value_Range_Upper >=" + tradeValue + " or c.Trade_Value_Range_Upper is NULL)) )\n" +
-                                        "and (c.Instrument_Price_Lower is null or (c.Instrument_Price_Lower <=" + instrPrice + " and (c.Instrument_Price_Upper >=" + instrPrice + " or c.Instrument_Price_Upper is NULL)) )\n" +
-                                        "and (c.Number_Unit_Lower is null or (c.Number_Unit_Lower <=" + quantity + "and (c.Number_Unit_Upper >=" + quantity + " or c.Number_Unit_Upper is NULL)) )\n" +
-                                        "and at.Description in (" + accountTypeQuery + ")\n" +
-                                        "and m.Description = " + marketQuery + ";";
+                                        "and (c.Trade_Value_Range_Lower is null or (c.Trade_Value_Range_Lower <=:TradeValue and (c.Trade_Value_Range_Upper >=:TradeValue  or c.Trade_Value_Range_Upper is NULL)) )\n" +
+                                        "and (c.Instrument_Price_Lower is null or (c.Instrument_Price_Lower <=:InstrPrice and (c.Instrument_Price_Upper >=:InstrPrice or c.Instrument_Price_Upper is NULL)) )\n" +
+                                        "and (c.Number_Unit_Lower is null or (c.Number_Unit_Lower <=:Quantity and (c.Number_Unit_Upper >=:Quantity or c.Number_Unit_Upper is NULL)) )\n" +
+                                        "and at.Description in (:AccountTypeQuery)\n" +
+                                        "and m.Description =:MarketQuery;";
         PriorityQueue<JsonObject> pq = new PriorityQueue<>(RESULT_INITIAL_CAPACITY, this::compare);
-        JsonArray ja = new JsonArray();
-        try (Connection conn = DriverManager.getConnection(DB_JDBC_CONNECTION_LINK, DB_USERNAME, DB_PASSWORD);
-             PreparedStatement ps = conn.prepareStatement(sqlFindAllComEntries);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                JsonObject jo = new JsonObject();
-                jo.addProperty("BrokerID", rs.getInt("Broker_ID"));
-                jo.addProperty("BrokerName", rs.getString("Name"));
-                jo.addProperty("AccountType", rs.getString("Account_Type_Desc"));
-                jo.addProperty("ComCurrencyOrigin", rs.getString("Currency_Code"));
-                Quote q = calculateCom(s, rs.getInt("Commission_Type"),
-                        rs.getDouble("Commission_Rate"),
-                        rs.getString("Currency_Code"),
-                        rs.getDouble("Min_Commission"),
-                        rs.getDouble("Max_Commission"),
-                        tradeValue,
-                        rs.getInt("Max_Commission_Type"),
-                        rs.getInt("Number_Unit_Lower"),
-                        rs.getDouble("Additional_Cost"));
-                jo.addProperty("ComAmountOrigin", q.origin);
-                jo.addProperty("ComCurrencyUnified", q.unifiedCode);
-                jo.addProperty("ComAmountUnified", q.unified);
-                pq.add(jo);
-            }
-            while(pq.size() != 0){
-                ja.add(pq.remove());
-            }
-        } catch (SQLException e) {
-            System.out.println(e);
-        }
+        NamedParameterJdbcTemplate jdbcTemplateObject = new NamedParameterJdbcTemplate(getDataSource());
+        SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(s);
+        JsonArray ja = jdbcTemplateObject.query(sqlFindAllComEntries, namedParameters,
+                rs -> {
+                    JsonArray ja1 = new JsonArray();
+                    while (rs.next()) {
+                        JsonObject jo = new JsonObject();
+                        jo.addProperty("BrokerID", rs.getInt("Broker_ID"));
+                        jo.addProperty("BrokerName", rs.getString("Name"));
+                        jo.addProperty("AccountType", rs.getString("Account_Type_Desc"));
+                        jo.addProperty("ComCurrencyOrigin", rs.getString("Currency_Code"));
+                        Quote q = calculateCom(s, rs.getInt("Commission_Type"),
+                                rs.getDouble("Commission_Rate"),
+                                rs.getString("Currency_Code"),
+                                rs.getDouble("Min_Commission"),
+                                rs.getDouble("Max_Commission"),
+                                s.getTradeValue(),
+                                rs.getInt("Max_Commission_Type"),
+                                rs.getInt("Number_Unit_Lower"),
+                                rs.getDouble("Additional_Cost"));
+                        jo.addProperty("ComAmountOrigin", q.origin);
+                        jo.addProperty("ComCurrencyUnified", q.unifiedCode);
+                        jo.addProperty("ComAmountUnified", q.unified);
+                        pq.add(jo);
+                    }
+                    while(pq.size() != 0){
+                        ja1.add(pq.remove());
+                    }
+                    return ja1;
+                });
         return ja.toString();
     }
 }
