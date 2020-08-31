@@ -53,7 +53,6 @@ public class FXRateService {
             rate = 1.0;
             return rate;
         }
-        System.out.println(fxRateCache.containsKey(q.getPairIden()));
         if(fxRateCache.containsKey(cp)){
             Date current = new Date();
             Calendar c = Calendar.getInstance();

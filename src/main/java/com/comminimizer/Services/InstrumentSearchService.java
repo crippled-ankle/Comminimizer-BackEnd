@@ -12,7 +12,6 @@ public class InstrumentSearchService {
     public String searchInstrument(String iden) {
         RestTemplate rt = new RestTemplate();
         String url = INSTRUMENT_SEARCH_URL_PREFIX + iden + INSTRUMENT_SEARCH_URL_SUFFIX;
-        String result = rt.getForObject(url, String.class);
-        return result;
+        return rt.getForObject(url, String.class);
     }
 }
