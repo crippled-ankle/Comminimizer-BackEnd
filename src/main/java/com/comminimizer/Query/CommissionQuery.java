@@ -43,7 +43,7 @@ public class CommissionQuery{
         setAccountTypeQuery();
     }
 
-    //AccountType: 1 - Regular Only, 2 - Tax Shelter Only, 3 - All
+    //AccountType: 1 - Regular Only, 2 - Registered Only, 3 - All
     void setAccountTypeQuery(){
         List<String> ret = new java.util.ArrayList<>(Collections.emptyList());
         if(this.AccountType == 1){
@@ -57,7 +57,6 @@ public class CommissionQuery{
         this.AccountTypeQuery = ret;
     }
 
-    //TODO refine the calculation of trade value as commission currency can be different than instrument quoting currency
     void setTradeValue() {
         this.TradeValue = this.Quantity * this.InstrPrice;
     }
@@ -69,6 +68,8 @@ public class CommissionQuery{
         else
             this.MarketQuery =  this.Region.replace("\"", "");
     }
+
+    public String getCurrency() { return Currency; }
 
     public Double getQuantity() {
         return Quantity;

@@ -48,13 +48,18 @@ public class CommissionSearchService {
                               String curCode,
                               Double minCom,
                               Double maxCom,
-                              Double tradeValue,
                               Integer maxComType,
                               Integer tierStart,
                               Double additionalCost) {
         Quote ret = new Quote();
+        Double tradeValue = s.getTradeValue();
+        String tradeValueCur = s.getCurrency();
         ret.originCode = curCode;
         ret.unifiedCode = UNIFIED_CURRENCY_CODE;
+        if(!curCode.equals(tradeValueCur)){
+            FXQuery tradeValueFXQuery = new FXQuery(tradeValueCur, curCode);
+            tradeValue = tradeValue * fxs.getRate(tradeValueFXQuery);
+        }
         if(comType == 1) { // flat rate
             ret.origin = comRate;
         } else if(comType == 2) { // pay per use
@@ -116,7 +121,6 @@ public class CommissionSearchService {
                                 rs.getString("Currency_Code"),
                                 rs.getDouble("Min_Commission"),
                                 rs.getDouble("Max_Commission"),
-                                s.getTradeValue(),
                                 rs.getInt("Max_Commission_Type"),
                                 rs.getInt("Number_Unit_Lower"),
                                 rs.getDouble("Additional_Cost"));
