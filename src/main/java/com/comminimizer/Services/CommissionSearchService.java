@@ -22,6 +22,7 @@ public class CommissionSearchService {
 
     static final String UNIFIED_CURRENCY_CODE = "CAD";
     static final Integer RESULT_INITIAL_CAPACITY = 25;
+    static final Double NULL_DOUBLE = 0.0;
     static final String DB_JDBC_CONNECTION_LINK = "ADD_HERE";
     static final String DB_USERNAME = "ADD_HERE";
     static final String DB_PASSWORD = "ADD_HERE";
@@ -40,6 +41,31 @@ public class CommissionSearchService {
         String originCode;
         Double unified;
         String unifiedCode;
+    }
+
+    public Boolean checkRecordConstraint(CommissionQuery s,
+                                         String rCurrency,
+                                         Double rInstrumentPriceLower,
+                                         Double rInstrumentPriceUpper,
+                                         Double rTradeValueRangeLower,
+                                         Double rTradeValueRangeUpper) {
+        Double tradeValue = s.getTradeValue();
+        Double price = s.getInstrPrice();
+        String qCurrency = s.getCurrency();
+        // unify the currency
+        if(!qCurrency.equals(rCurrency)){
+            FXQuery q = new FXQuery(qCurrency, rCurrency);
+            tradeValue = tradeValue * fxs.getRate(q);
+        }
+        if(!((rInstrumentPriceLower.equals(NULL_DOUBLE) && rInstrumentPriceUpper.equals(NULL_DOUBLE)) ||
+                (price >= rInstrumentPriceLower && price <= rInstrumentPriceUpper))) {
+            return false;
+        }
+        if(!((rTradeValueRangeLower.equals(NULL_DOUBLE) && rTradeValueRangeUpper.equals(NULL_DOUBLE)) ||
+                (tradeValue >= rTradeValueRangeLower && tradeValue <= rTradeValueRangeUpper))) {
+            return false;
+        }
+        return true;
     }
 
     public Quote calculateCom(CommissionQuery s,
@@ -66,6 +92,8 @@ public class CommissionSearchService {
             ret.origin = comRate * s.getQuantity();
         } else if(comType == 3) { // pay per use (tiered)
             ret.origin = comRate * (s.getQuantity() - tierStart + 1);
+        } else if(comType == 4) { // per trade value
+            ret.origin = comRate * tradeValue;
         }
 
         // set quote cap
@@ -99,11 +127,9 @@ public class CommissionSearchService {
                                         "and c.Broker_ID = b.ID\n" +
                                         "and at.ID = c.Account_Type\n" +
                                         "and cc.ID = c.Currency\n" +
-                                        "and (c.Trade_Value_Range_Lower is null or (c.Trade_Value_Range_Lower <=:TradeValue and (c.Trade_Value_Range_Upper >=:TradeValue  or c.Trade_Value_Range_Upper is NULL)) )\n" +
-                                        "and (c.Instrument_Price_Lower is null or (c.Instrument_Price_Lower <=:InstrPrice and (c.Instrument_Price_Upper >=:InstrPrice or c.Instrument_Price_Upper is NULL)) )\n" +
                                         "and (c.Number_Unit_Lower is null or (c.Number_Unit_Lower <=:Quantity and (c.Number_Unit_Upper >=:Quantity or c.Number_Unit_Upper is NULL)) )\n" +
                                         "and at.Description in (:AccountTypeQuery)\n" +
-                                        "and m.Description =:MarketQuery;";
+                                        "and m.Code =:MarketQuery;";
         PriorityQueue<JsonObject> pq = new PriorityQueue<>(RESULT_INITIAL_CAPACITY, this::compare);
         NamedParameterJdbcTemplate jdbcTemplateObject = new NamedParameterJdbcTemplate(getDataSource());
         SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(s);
@@ -111,23 +137,35 @@ public class CommissionSearchService {
                 rs -> {
                     JsonArray ja1 = new JsonArray();
                     while (rs.next()) {
-                        JsonObject jo = new JsonObject();
-                        jo.addProperty("BrokerID", rs.getInt("Broker_ID"));
-                        jo.addProperty("BrokerName", rs.getString("Name"));
-                        jo.addProperty("AccountType", rs.getString("Account_Type_Desc"));
-                        jo.addProperty("ComCurrencyOrigin", rs.getString("Currency_Code"));
-                        Quote q = calculateCom(s, rs.getInt("Commission_Type"),
-                                rs.getDouble("Commission_Rate"),
-                                rs.getString("Currency_Code"),
-                                rs.getDouble("Min_Commission"),
-                                rs.getDouble("Max_Commission"),
-                                rs.getInt("Max_Commission_Type"),
-                                rs.getInt("Number_Unit_Lower"),
-                                rs.getDouble("Additional_Cost"));
-                        jo.addProperty("ComAmountOrigin", q.origin);
-                        jo.addProperty("ComCurrencyUnified", q.unifiedCode);
-                        jo.addProperty("ComAmountUnified", q.unified);
-                        pq.add(jo);
+                        String rCurrency = rs.getString("Currency_Code");
+                        Double rInstrumentPriceLower = rs.getDouble("Instrument_Price_Lower");
+                        Double rInstrumentPriceUpper = rs.getDouble("Instrument_Price_Upper");
+                        Double rTradeValueRangeLower = rs.getDouble("Trade_Value_Range_Lower");
+                        Double rTradeValueRangeUpper = rs.getDouble("Trade_Value_Range_Upper");
+                        if(checkRecordConstraint(s,
+                                                rCurrency,
+                                                rInstrumentPriceLower,
+                                                rInstrumentPriceUpper,
+                                                rTradeValueRangeLower,
+                                                rTradeValueRangeUpper)){ // record fits constraints
+                            JsonObject jo = new JsonObject();
+                            jo.addProperty("BrokerID", rs.getInt("Broker_ID"));
+                            jo.addProperty("BrokerName", rs.getString("Name"));
+                            jo.addProperty("AccountType", rs.getString("Account_Type_Desc"));
+                            jo.addProperty("ComCurrencyOrigin", rs.getString("Currency_Code"));
+                            Quote q = calculateCom(s, rs.getInt("Commission_Type"),
+                                                        rs.getDouble("Commission_Rate"),
+                                                        rCurrency,
+                                                        rs.getDouble("Min_Commission"),
+                                                        rs.getDouble("Max_Commission"),
+                                                        rs.getInt("Max_Commission_Type"),
+                                                        rs.getInt("Number_Unit_Lower"),
+                                                        rs.getDouble("Additional_Cost"));
+                            jo.addProperty("ComAmountOrigin", q.origin);
+                            jo.addProperty("ComCurrencyUnified", q.unifiedCode);
+                            jo.addProperty("ComAmountUnified", q.unified);
+                            pq.add(jo);
+                        }
                     }
                     while(pq.size() != 0){
                         ja1.add(pq.remove());

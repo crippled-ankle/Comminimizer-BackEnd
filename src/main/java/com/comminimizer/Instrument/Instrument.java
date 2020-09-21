@@ -1,6 +1,10 @@
 package com.comminimizer.Instrument;
 
 import com.google.gson.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 public class Instrument {
@@ -13,8 +17,10 @@ public class Instrument {
     public Double contractSize = 1.0;
 
     static final String INSTRUMENT_QUOTE_URL_PREFIX = "ADD_HERE";
-    static final String INSTRUMENT_QUOTE_URL_SUFFIX = "ADD_HERE";
-
+    static final String HTTP_HEADER_API_HOST_NAME = "ADD_HERE";
+    static final String HTTP_HEADER_API_KEY_NAME = "ADD_HERE";
+    static final String HTTP_HEADER_API_HOST = "ADD_HERE";
+    static final String HTTP_HEADER_API_KEY = "ADD_HERE";
     public Instrument( String iden, Integer idenType ) {
         this.iden = iden;
         this.idenType = idenType;
@@ -23,18 +29,19 @@ public class Instrument {
     public void setAttrFromSearch() {
         // TODO encapsulate configuration
         RestTemplate rt = new RestTemplate();
-        // Alpha Vantage Quote
-        String url = INSTRUMENT_QUOTE_URL_PREFIX + this.iden.replace("\"", "") + INSTRUMENT_QUOTE_URL_SUFFIX;
+        String url = INSTRUMENT_QUOTE_URL_PREFIX + this.iden.replace("\"", "");
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HTTP_HEADER_API_HOST_NAME, HTTP_HEADER_API_HOST);
+        headers.set(HTTP_HEADER_API_KEY_NAME, HTTP_HEADER_API_KEY);
+        HttpEntity entity = new HttpEntity(headers);
+        ResponseEntity<String> response = rt.exchange(url, HttpMethod.GET, entity, String.class);
         try {
-            String result = rt.getForObject(url, String.class);
             JsonParser jp = new JsonParser();
-            JsonElement je = jp.parse(result);
-            JsonObject globalQuote = je.getAsJsonObject().getAsJsonObject("Global Quote");
+            JsonElement je = jp.parse(response.getBody());
+            JsonObject quote = je.getAsJsonObject().getAsJsonObject("quoteResponse").getAsJsonArray("result").get(0).getAsJsonObject();
             instrumentType = 1; // TODO set proper instrument type
-            //this.iden = realData.get("01. symbol").toString().replace("\"", "");
-            //region = realData.get("4. region").toString().replace("\"", "");
-            //currency = realData.get("8. currency").toString().replace("\"", "");
-            referencePrice = Double.parseDouble(globalQuote.get("05. price").toString().replace("\"", ""));
+            currency = quote.get("currency").toString().replace("\"", "");
+            referencePrice = Double.parseDouble(quote.get("regularMarketPrice").toString().replace("\"", ""));
             contractSize = 1.0; // TODO set proper contract size
         } catch (Exception ex) {
             System.out.println("Reference price not available: " + iden + " " + ex);

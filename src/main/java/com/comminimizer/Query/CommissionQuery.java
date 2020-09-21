@@ -29,7 +29,6 @@ public class CommissionQuery{
         rb = rb.replace("\\", "");
         JsonElement je = jp.parse(rb.substring(1, rb.length() - 1)); //TODO: justify the reason to truncate
         JsonObject jo = je.getAsJsonObject();
-        Currency = jo.get("Currency").toString();
         Instr = jo.get("Instr").toString();
         InstrType = Integer.parseInt(jo.get("InstrType").toString());
         Region = jo.get("Market").toString();
@@ -38,6 +37,7 @@ public class CommissionQuery{
         Instrument i = new Instrument(Instr, 1); // TODO set proper iden type
         i.setAttrFromSearch();
         InstrPrice = i.referencePrice;
+        Currency = i.currency;
         setTradeValue();
         setMarketQuery();
         setAccountTypeQuery();
@@ -63,8 +63,10 @@ public class CommissionQuery{
 
     //TODO Add region mapping (know the API first)
     void setMarketQuery(){
-        if(this.Region.equals("\"Toronto\""))
-            this.MarketQuery =  "Canada";
+        if(this.Region.equals("\"TOR\""))
+            this.MarketQuery =  "CA";
+        else if(this.Region.equals("\"NMS\""))
+            this.MarketQuery = "US";
         else
             this.MarketQuery =  this.Region.replace("\"", "");
     }
