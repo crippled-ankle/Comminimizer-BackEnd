@@ -25,7 +25,7 @@ public class CommissionSearchServiceTest {
         assert t3Res == 29.5 : "Expected: 29.5 Got: " + t3Res;
 
         CommissionQuery test4 = new CommissionQuery(" {\"Instr\": \"TSLA\", \"InstrType\": 1, \"Market\": \"United States\", \"Currency\": \"USD\", \"Quantity\": 10000, \"QuantityType\": \"shares\", \"AccountType\": 3} ");
-        Double t4Res = ss.calculateCom(test4, 2, 0.005, "USD", 1.0, 0.0, 2, 0, 0.0).origin;
+        Double t4Res = ss.calculateCom(test4, 2, 0.005, "USD", 1.0, 0.01, 2, 0, 0.0).origin;
         assert t4Res == 50.0 : "Expected: 50.0 Got: " + t2Res;
 
     }
