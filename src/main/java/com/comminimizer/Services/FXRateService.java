@@ -4,6 +4,7 @@ import com.comminimizer.Query.FXQuery;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Calendar;
@@ -24,6 +25,7 @@ public class FXRateService {
     }
 
     Map<String, fxRate> fxRateCache = new HashMap<>();
+    static final String RELAY_CURRENCY = "CAD";
     static final String FX_RATE_QUERY_URL_PREFIX = "ADD_HERE";
     static final String FX_RATE_QUERY_URL_SUFFIX = "ADD_HERE";
 
@@ -34,10 +36,18 @@ public class FXRateService {
         RestTemplate rt = new RestTemplate();
         Double rate = -1.0;
         try {
-            String result = rt.getForObject(url, String.class);
-            JsonParser jp = new JsonParser();
-            JsonElement je = jp.parse(result);
-            rate = je.getAsJsonObject().getAsJsonArray("observations").get(0).getAsJsonObject().getAsJsonObject(seriesName).get("v").getAsDouble();
+            try {
+                String result = rt.getForObject(url, String.class);
+                JsonParser jp = new JsonParser();
+                JsonElement je = jp.parse(result);
+                rate = je.getAsJsonObject().getAsJsonArray("observations").get(0).getAsJsonObject().getAsJsonObject(seriesName).get("v").getAsDouble();
+            } catch (HttpClientErrorException ex) { // if the direct FX rate is not found, use CAD as the relay
+                System.out.println(ex.getStatusCode());
+                System.out.println(ex.getResponseBodyAsString());
+                FXQuery q1 = new FXQuery(q.originCode, RELAY_CURRENCY);
+                FXQuery q2 = new FXQuery(RELAY_CURRENCY, q.destinationCode);
+                rate = getRate(q1) * getRate(q2);
+            }
         } catch (Exception ex) {
             System.out.println("FX rate not available: " + q.originCode + "->" + q.destinationCode + " " + ex);
         }

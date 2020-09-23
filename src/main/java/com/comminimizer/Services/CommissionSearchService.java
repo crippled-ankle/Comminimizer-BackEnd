@@ -58,11 +58,13 @@ public class CommissionSearchService {
             tradeValue = tradeValue * fxs.getRate(q);
         }
         if(!((rInstrumentPriceLower.equals(NULL_DOUBLE) && rInstrumentPriceUpper.equals(NULL_DOUBLE)) ||
-                (price >= rInstrumentPriceLower && price <= rInstrumentPriceUpper))) {
+                (price >= rInstrumentPriceLower && rInstrumentPriceUpper.equals(NULL_DOUBLE)) ||
+                (price >= rInstrumentPriceLower && price < rInstrumentPriceUpper))) {
             return false;
         }
         if(!((rTradeValueRangeLower.equals(NULL_DOUBLE) && rTradeValueRangeUpper.equals(NULL_DOUBLE)) ||
-                (tradeValue >= rTradeValueRangeLower && tradeValue <= rTradeValueRangeUpper))) {
+                (tradeValue >= rTradeValueRangeLower && rTradeValueRangeUpper.equals(NULL_DOUBLE)) ||
+                (tradeValue >= rTradeValueRangeLower && tradeValue < rTradeValueRangeUpper))) {
             return false;
         }
         return true;
@@ -75,7 +77,8 @@ public class CommissionSearchService {
                               Double minCom,
                               Double maxCom,
                               Integer maxComType,
-                              Integer tierStart,
+                              Integer tierStartQ,
+                              Double tierStartTV,
                               Double additionalCost) {
         Quote ret = new Quote();
         Double tradeValue = s.getTradeValue();
@@ -91,9 +94,11 @@ public class CommissionSearchService {
         } else if(comType == 2) { // pay per use
             ret.origin = comRate * s.getQuantity();
         } else if(comType == 3) { // pay per use (tiered)
-            ret.origin = comRate * (s.getQuantity() - tierStart + 1);
+            ret.origin = comRate * (s.getQuantity() - tierStartQ + 1);
         } else if(comType == 4) { // per trade value
             ret.origin = comRate * tradeValue;
+        } else if(comType == 5) { // per trade value (tiered)
+            ret.origin = comRate * (s.getTradeValue() - tierStartTV);
         }
 
         // set quote cap
@@ -103,7 +108,12 @@ public class CommissionSearchService {
 
         ret.origin = Math.min(maxCom, ret.origin);
         ret.origin += additionalCost;
-        ret.origin = Math.max(minCom, ret.origin);
+
+        // cap the commission if there is a max
+        if(maxComType != 0) {
+            ret.origin = Math.max(minCom, ret.origin);
+        }
+
         FXQuery q = new FXQuery(ret.originCode, ret.unifiedCode);
         ret.unified = ret.origin * fxs.getRate(q);
         return ret;
@@ -160,6 +170,7 @@ public class CommissionSearchService {
                                                         rs.getDouble("Max_Commission"),
                                                         rs.getInt("Max_Commission_Type"),
                                                         rs.getInt("Number_Unit_Lower"),
+                                                        rs.getDouble("Trade_Value_Range_Lower"),
                                                         rs.getDouble("Additional_Cost"));
                             jo.addProperty("ComAmountOrigin", q.origin);
                             jo.addProperty("ComCurrencyUnified", q.unifiedCode);
