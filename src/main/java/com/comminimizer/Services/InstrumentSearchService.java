@@ -7,14 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import static com.comminimizer.ConfigProperties.*;
+
 @Service
 public class InstrumentSearchService {
-
-    static final String INSTRUMENT_SEARCH_URL_PREFIX = "ADD_HERE";
-    static final String HTTP_HEADER_API_HOST_NAME = "ADD_HERE";
-    static final String HTTP_HEADER_API_KEY_NAME = "ADD_HERE";
-    static final String HTTP_HEADER_API_HOST = "ADD_HERE";
-    static final String HTTP_HEADER_API_KEY = "ADD_HERE";
 
     public String searchInstrument(String iden) {
         RestTemplate rt = new RestTemplate();

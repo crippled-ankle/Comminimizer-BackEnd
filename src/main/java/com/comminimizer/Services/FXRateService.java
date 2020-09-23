@@ -12,6 +12,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.comminimizer.ConfigProperties.FX_RATE_QUERY_URL_PREFIX;
+import static com.comminimizer.ConfigProperties.FX_RATE_QUERY_URL_SUFFIX;
+
 @Service
 public class FXRateService {
     public class fxRate {
@@ -26,8 +29,6 @@ public class FXRateService {
 
     Map<String, fxRate> fxRateCache = new HashMap<>();
     static final String RELAY_CURRENCY = "CAD";
-    static final String FX_RATE_QUERY_URL_PREFIX = "ADD_HERE";
-    static final String FX_RATE_QUERY_URL_SUFFIX = "ADD_HERE";
 
     public Double downloadRate(FXQuery q) {
         //fetch rate from Bank of Canada API

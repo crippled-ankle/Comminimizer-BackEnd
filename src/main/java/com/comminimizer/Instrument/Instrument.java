@@ -7,6 +7,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import static com.comminimizer.ConfigProperties.*;
+
 public class Instrument {
     public Integer instrumentType = 1; // for now, it supports stocks only
     public String iden = "";
@@ -16,11 +18,6 @@ public class Instrument {
     public Double referencePrice = -1.0;
     public Double contractSize = 1.0;
 
-    static final String INSTRUMENT_QUOTE_URL_PREFIX = "ADD_HERE";
-    static final String HTTP_HEADER_API_HOST_NAME = "ADD_HERE";
-    static final String HTTP_HEADER_API_KEY_NAME = "ADD_HERE";
-    static final String HTTP_HEADER_API_HOST = "ADD_HERE";
-    static final String HTTP_HEADER_API_KEY = "ADD_HERE";
     public Instrument( String iden, Integer idenType ) {
         this.iden = iden;
         this.idenType = idenType;

@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import javax.sql.DataSource;
 import java.util.PriorityQueue;
 
+import static com.comminimizer.ConfigProperties.*;
+
 @Service
 public class CommissionSearchService {
 
@@ -23,9 +25,6 @@ public class CommissionSearchService {
     static final String UNIFIED_CURRENCY_CODE = "CAD";
     static final Integer RESULT_INITIAL_CAPACITY = 25;
     static final Double NULL_DOUBLE = 0.0;
-    static final String DB_JDBC_CONNECTION_LINK = "ADD_HERE";
-    static final String DB_USERNAME = "ADD_HERE";
-    static final String DB_PASSWORD = "ADD_HERE";
 
     @Bean
     public DataSource getDataSource() {
