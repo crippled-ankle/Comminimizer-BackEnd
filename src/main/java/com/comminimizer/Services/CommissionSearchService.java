@@ -105,14 +105,13 @@ public class CommissionSearchService {
             maxCom = maxCom * tradeValue;
         }
 
-        ret.origin = Math.min(maxCom, ret.origin);
-        ret.origin += additionalCost;
-
         // cap the commission if there is a max
         if(maxComType != 0) {
-            ret.origin = Math.max(minCom, ret.origin);
+            ret.origin = Math.min(maxCom, ret.origin);
         }
+        ret.origin += additionalCost;
 
+        ret.origin = Math.max(minCom, ret.origin);
         FXQuery q = new FXQuery(ret.originCode, ret.unifiedCode);
         ret.unified = ret.origin * fxs.getRate(q);
         return ret;
