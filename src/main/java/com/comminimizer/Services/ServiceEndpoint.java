@@ -12,11 +12,13 @@ public class ServiceEndpoint {
     @Autowired
     private InstrumentSearchService iss;
 
+    @CrossOrigin
     @PostMapping("/search")
     public String searchCom(@RequestBody String requestBody){
         return css.queryCommissionDB(requestBody);
     }
 
+    @CrossOrigin
     @GetMapping("/search-instrument/{iden}")
     public String searchInstrument(@PathVariable String iden){
         return iss.searchInstrument(iden);
