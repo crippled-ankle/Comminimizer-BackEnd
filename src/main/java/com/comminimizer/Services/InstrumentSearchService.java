@@ -18,7 +18,7 @@ public class InstrumentSearchService {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HTTP_HEADER_API_HOST_NAME, HTTP_HEADER_API_HOST);
         headers.set(HTTP_HEADER_API_KEY_NAME, HTTP_HEADER_API_KEY);
-        HttpEntity entity = new HttpEntity(headers);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
         ResponseEntity<String> response = rt.exchange(url, HttpMethod.GET, entity, String.class);
         return response.getBody();
     }

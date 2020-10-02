@@ -1,5 +1,6 @@
 package com.comminimizer.Instrument;
 
+import com.comminimizer.Services.ComMinimizer;
 import com.google.gson.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -24,29 +25,21 @@ public class Instrument {
     }
 
     public void setAttrFromSearch() {
-        // TODO encapsulate configuration
         RestTemplate rt = new RestTemplate();
         String url = INSTRUMENT_QUOTE_URL_PREFIX + this.iden.replace("\"", "");
         HttpHeaders headers = new HttpHeaders();
         headers.set(HTTP_HEADER_API_HOST_NAME, HTTP_HEADER_API_HOST);
         headers.set(HTTP_HEADER_API_KEY_NAME, HTTP_HEADER_API_KEY);
-        HttpEntity entity = new HttpEntity(headers);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
         ResponseEntity<String> response = rt.exchange(url, HttpMethod.GET, entity, String.class);
         try {
-            JsonParser jp = new JsonParser();
-            JsonElement je = jp.parse(response.getBody());
-            JsonObject quote = je.getAsJsonObject().getAsJsonObject("quoteResponse").getAsJsonArray("result").get(0).getAsJsonObject();
+            JsonObject quote = JsonParser.parseString(response.getBody()).getAsJsonObject().getAsJsonObject("quoteResponse").getAsJsonArray("result").get(0).getAsJsonObject();
             instrumentType = 1; // TODO set proper instrument type
             currency = quote.get("currency").toString().replace("\"", "");
             referencePrice = Double.parseDouble(quote.get("regularMarketPrice").toString().replace("\"", ""));
             contractSize = 1.0; // TODO set proper contract size
         } catch (Exception ex) {
-            System.out.println("Reference price not available: " + iden + " " + ex);
+            ComMinimizer.log.warn("Reference price not available: " + iden + " " + ex);
         }
-    }
-
-    public String jsonifyInstrument() {
-        Gson gson = new Gson();
-        return gson.toJson(this);
     }
 }

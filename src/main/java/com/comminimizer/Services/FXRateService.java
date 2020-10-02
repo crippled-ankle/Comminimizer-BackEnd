@@ -17,7 +17,7 @@ import static com.comminimizer.ConfigProperties.FX_RATE_QUERY_URL_SUFFIX;
 
 @Service
 public class FXRateService {
-    public class fxRate {
+    static public class fxRate {
         Double rate;
         java.util.Date lastUpdatedTime;
 
@@ -35,22 +35,24 @@ public class FXRateService {
         String seriesName = "FX" + q.originCode + q.destinationCode;
         String url = FX_RATE_QUERY_URL_PREFIX + seriesName.replace("\"", "") + FX_RATE_QUERY_URL_SUFFIX;
         RestTemplate rt = new RestTemplate();
-        Double rate = -1.0;
+        double rate = -1.0;
         try {
             try {
                 String result = rt.getForObject(url, String.class);
-                JsonParser jp = new JsonParser();
-                JsonElement je = jp.parse(result);
+                if(result == null) {
+                    throw new Exception("FX Rate Fetched Null.");
+                }
+                JsonElement je = JsonParser.parseString(result);
                 rate = je.getAsJsonObject().getAsJsonArray("observations").get(0).getAsJsonObject().getAsJsonObject(seriesName).get("v").getAsDouble();
             } catch (HttpClientErrorException ex) { // if the direct FX rate is not found, use CAD as the relay
-                System.out.println(ex.getStatusCode());
-                System.out.println(ex.getResponseBodyAsString());
+                ComMinimizer.log.warn("FX Rate Fetching Failed. Status: " + ex.getStatusCode());
+                ComMinimizer.log.warn("Response Body: " + ex.getResponseBodyAsString());
                 FXQuery q1 = new FXQuery(q.originCode, RELAY_CURRENCY);
                 FXQuery q2 = new FXQuery(RELAY_CURRENCY, q.destinationCode);
                 rate = getRate(q1) * getRate(q2);
             }
         } catch (Exception ex) {
-            System.out.println("FX rate not available: " + q.originCode + "->" + q.destinationCode + " " + ex);
+            ComMinimizer.log.warn("FX rate not available: " + q.originCode + "->" + q.destinationCode + " " + ex);
         }
         fxRate r = new fxRate(rate);
         fxRateCache.put(q.getPairIden(), r);
@@ -59,7 +61,7 @@ public class FXRateService {
 
     public Double getRate(FXQuery q) {
         String cp = q.getPairIden();
-        Double rate = -1.0;
+        Double rate;
         if (q.originCode.equals(q.destinationCode)) {
             rate = 1.0;
             return rate;

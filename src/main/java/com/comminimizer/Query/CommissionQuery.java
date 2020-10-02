@@ -1,7 +1,7 @@
 package com.comminimizer.Query;
 
 import com.comminimizer.Instrument.Instrument;
-import com.google.gson.JsonElement;
+import com.comminimizer.Services.ComMinimizer;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -25,32 +25,35 @@ public class CommissionQuery{
     static final List<String> REGISTERED_ACCOUNT = Arrays.asList("RRSP", "TFSA");
 
     public CommissionQuery(String rb){
-        JsonParser jp = new JsonParser();
         rb = rb.replace("\\", "");
-        JsonElement je = jp.parse(rb.substring(1, rb.length() - 1)); //TODO: justify the reason to truncate
-        JsonObject jo = je.getAsJsonObject();
-        Instr = jo.get("Instr").toString();
-        InstrType = Integer.parseInt(jo.get("InstrType").toString());
-        Region = jo.get("Market").toString();
-        Quantity = Double.parseDouble(jo.get("Quantity").toString());
-        AccountType = Integer.parseInt(jo.get("AccountType").toString());
-        Instrument i = new Instrument(Instr, 1); // TODO set proper iden type
-        i.setAttrFromSearch();
-        InstrPrice = i.referencePrice;
-        Currency = i.currency;
-        setTradeValue();
-        setMarketQuery();
-        setAccountTypeQuery();
+        try {
+            JsonObject jo = JsonParser.parseString(rb.substring(1, rb.length() - 1)).getAsJsonObject(); //TODO: justify the reason to truncate
+            Instr = jo.get("Instr").toString();
+            InstrType = Integer.parseInt(jo.get("InstrType").toString());
+            Region = jo.get("Market").toString();
+            Quantity = Double.parseDouble(jo.get("Quantity").toString());
+            AccountType = Integer.parseInt(jo.get("AccountType").toString());
+            Instrument i = new Instrument(Instr, 1); // TODO set proper iden type
+            i.setAttrFromSearch();
+            InstrPrice = i.referencePrice;
+            Currency = i.currency;
+            setTradeValue();
+            setMarketQuery();
+            setAccountTypeQuery();
+        } catch ( Exception ex ) {
+            ex.printStackTrace();
+            ComMinimizer.log.warn("Unable to parse commission search query: " + rb);
+        }
     }
 
     //AccountType: 1 - Regular Only, 2 - Registered Only, 3 - All
     void setAccountTypeQuery(){
         List<String> ret = new java.util.ArrayList<>(Collections.emptyList());
-        if(this.AccountType == 1){
+        if(this.AccountType.equals(1)){
             ret.addAll(REGULAR_ACCOUNT);
-        } else if(this.AccountType == 2){
+        } else if(this.AccountType.equals(2)){
             ret.addAll(REGISTERED_ACCOUNT);
-        } else if(this.AccountType == 3){
+        } else if(this.AccountType.equals(3)){
             ret.addAll(REGULAR_ACCOUNT);
             ret.addAll(REGISTERED_ACCOUNT);
         }
@@ -61,14 +64,20 @@ public class CommissionQuery{
         this.TradeValue = this.Quantity * this.InstrPrice;
     }
 
-    //TODO Add region mapping (know the API first)
     void setMarketQuery(){
-        if(this.Region.equals("\"TOR\""))
+        if(this.Region.equals("\"TOR\"")
+            || this.Region.equals("\"VAN\"")
+            || this.Region.equals("\"CNQ\"")
+            || this.Region.equals("\"NEO\""))
             this.MarketQuery =  "CA";
-        else if(this.Region.equals("\"NMS\""))
+        else if(this.Region.equals("\"NMS\"")
+            || this.Region.equals("\"NGM\"")
+            || this.Region.equals("\"NCM\"")
+            || this.Region.equals("\"NYQ\""))
             this.MarketQuery = "US";
         else
             this.MarketQuery =  this.Region.replace("\"", "");
+        ComMinimizer.log.info(this.MarketQuery);
     }
 
     public String getCurrency() { return Currency; }

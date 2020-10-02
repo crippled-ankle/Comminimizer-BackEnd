@@ -21,4 +21,10 @@ public class FXRateServiceTest {
         FXQuery q = new FXQuery("USD", "CAD");
         assert fxrs.getRate(q) > 0.0 : "FX rate not correct (Different Codes)";
     }
+
+    @Test
+    void testRelayCurrency() throws Exception {
+        FXQuery q = new FXQuery("SGD", "USD");
+        assert fxrs.getRate(q) > 0.0 : "FX rate not correct (Using Relay Currency)";
+    }
 }

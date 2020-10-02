@@ -28,14 +28,14 @@ public class CommissionSearchService {
 
     @Bean
     public DataSource getDataSource() {
-        DataSourceBuilder dataSourceBuilder = DataSourceBuilder.create();
+        DataSourceBuilder<?> dataSourceBuilder = DataSourceBuilder.create();
         dataSourceBuilder.username(DB_USERNAME);
         dataSourceBuilder.password(DB_PASSWORD);
         dataSourceBuilder.url(DB_JDBC_CONNECTION_LINK);
         return dataSourceBuilder.build();
     }
 
-    public class Quote {
+    static class Quote {
         Double origin;
         String originCode;
         Double unified;
@@ -99,7 +99,6 @@ public class CommissionSearchService {
         } else if(comType == 5) { // per trade value (tiered)
             ret.origin = comRate * (s.getTradeValue() - tierStartTV);
         }
-
         // set quote cap
         if(maxComType == 2) { // trade value percentage
             maxCom = maxCom * tradeValue;
@@ -128,6 +127,7 @@ public class CommissionSearchService {
     }
 
     public String queryCommissionDB(String requestBody) {
+        ComMinimizer.log.info("Received Commission Query: " + requestBody);
         CommissionQuery s = new CommissionQuery(requestBody);
         String sqlFindAllComEntries = "select b.Name, c.*, at.Description as Account_Type_Desc, cc.Code as Currency_Code\n" +
                                         "from commission c, market m, broker b, account_type at, currency cc\n" +
@@ -181,6 +181,12 @@ public class CommissionSearchService {
                     }
                     return ja1;
                 });
-        return ja.toString();
+        if(ja == null){
+            ComMinimizer.log.warn("Commission Query Resulted in Result Set Being Null: " + requestBody);
+            return "[]";
+        } else {
+            ComMinimizer.log.info("Commission Query Result: " + ja.toString());
+            return ja.toString();
+        }
     }
 }
