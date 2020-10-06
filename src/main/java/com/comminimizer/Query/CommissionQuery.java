@@ -24,6 +24,11 @@ public class CommissionQuery{
     static final List<String> REGULAR_ACCOUNT = Arrays.asList("Regular");
     static final List<String> REGISTERED_ACCOUNT = Arrays.asList("RRSP", "TFSA");
 
+    /**
+     * Constructor for a {@code CommissionQuery} object based on values supplied by the user.
+     * It references instrument related information from Yahoo API
+     * @param rb user supplied query in {@code Json} format
+     */
     public CommissionQuery(String rb){
         rb = rb.replace("\\", "");
         try {
@@ -46,7 +51,10 @@ public class CommissionQuery{
         }
     }
 
-    //AccountType: 1 - Regular Only, 2 - Registered Only, 3 - All
+    /**
+     * It enriches the query with the desired account type
+     * AccountType: 1 - Regular Only, 2 - Registered Only, 3 - All
+     */
     void setAccountTypeQuery(){
         List<String> ret = new java.util.ArrayList<>(Collections.emptyList());
         if(this.AccountType.equals(1)){
@@ -60,10 +68,17 @@ public class CommissionQuery{
         this.AccountTypeQuery = ret;
     }
 
+    /**
+     * It sets the trade value of the query
+     */
     void setTradeValue() {
         this.TradeValue = this.Quantity * this.InstrPrice;
     }
 
+    /**
+     * It maps the supplied region to the region used to query
+     * commission database, and sets the attribute of the query object
+     */
     void setMarketQuery(){
         if(this.Region.equals("\"TOR\"")
             || this.Region.equals("\"VAN\"")
@@ -80,24 +95,50 @@ public class CommissionQuery{
         ComMinimizer.log.info(this.MarketQuery);
     }
 
+    /**
+     * Getter for the quoting currency of the instrument
+     * @return the currency code
+     */
     public String getCurrency() { return Currency; }
 
+    /**
+     * Getter for the quantity of the search query
+     * @return quantity from user input
+     */
     public Double getQuantity() {
         return Quantity;
     }
 
+    /**
+     * Getter for the price of the instrument
+     * @return price value
+     */
     public Double getInstrPrice() {
         return InstrPrice;
     }
 
+    /**
+     * Getter for the trade value of the query
+     * @return trade value
+     */
     public Double getTradeValue() {
         return TradeValue;
     }
 
+    /**
+     * Getter for the account type attribute
+     * @return a formatted string representing the account type
+     *         used in the query
+     */
     public List<String> getAccountTypeQuery() {
         return AccountTypeQuery;
     }
 
+    /**
+     * Getter for the market attribute
+     * @return a mapped region value to be used in querying
+     *         commission database
+     */
     public String getMarketQuery() {
         return MarketQuery;
     }

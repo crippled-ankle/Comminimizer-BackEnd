@@ -21,6 +21,10 @@ public class FXRateService {
         Double rate;
         java.util.Date lastUpdatedTime;
 
+        /**
+         * Constructor for {@code fxRate}
+         * @param rate numeric part of the FX rate
+         */
         public fxRate(Double rate) {
             this.rate = rate;
             this.lastUpdatedTime = new Date();
@@ -30,6 +34,12 @@ public class FXRateService {
     Map<String, fxRate> fxRateCache = new HashMap<>();
     static final String RELAY_CURRENCY = "CAD";
 
+    /**
+     * It downloads the FX rate from Bank of Canada API. It may use CAD as a relay if needed.
+     * It stores the rate in the cache.
+     * @param q {@code FXQuery} object designating the original currency and destination currency
+     * @return the FX rate to convert original currency to the destination currency
+     */
     public Double downloadRate(FXQuery q) {
         //fetch rate from Bank of Canada API
         String seriesName = "FX" + q.originCode + q.destinationCode;
@@ -59,6 +69,12 @@ public class FXRateService {
         return rate;
     }
 
+    /**
+     * It fetches the FX rate from cache (if there is one and not expired), or downloads
+     * the rate.
+     * @param q {@code FXQuery} object designating the original currency and destination currency
+     * @return the FX rate to convert original currency to the destination currency
+     */
     public Double getRate(FXQuery q) {
         String cp = q.getPairIden();
         Double rate;

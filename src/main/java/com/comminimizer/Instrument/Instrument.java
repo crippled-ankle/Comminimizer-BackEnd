@@ -19,11 +19,19 @@ public class Instrument {
     public Double referencePrice = -1.0;
     public Double contractSize = 1.0;
 
+    /**
+     * Constructor for {@code Instrument}
+     * @param iden instrument identifier
+     * @param idenType instrument identifier type
+     */
     public Instrument( String iden, Integer idenType ) {
         this.iden = iden;
         this.idenType = idenType;
     }
 
+    /**
+     * It sets attributes of this instrument based on the supplied values from Yahoo API
+     */
     public void setAttrFromSearch() {
         RestTemplate rt = new RestTemplate();
         String url = INSTRUMENT_QUOTE_URL_PREFIX + this.iden.replace("\"", "");

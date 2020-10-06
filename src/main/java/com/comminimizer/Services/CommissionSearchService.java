@@ -26,6 +26,13 @@ public class CommissionSearchService {
     static final Integer RESULT_INITIAL_CAPACITY = 25;
     static final Double NULL_DOUBLE = 0.0;
 
+    /**
+     * It uses JDBC connection URL, username, and password to establish a
+     * connection to the database where all records collected from brokers
+     * are stored.
+     * @return the {@code DataSource} object corresponding to the commission
+     *         database
+     */
     @Bean
     public DataSource getDataSource() {
         DataSourceBuilder<?> dataSourceBuilder = DataSourceBuilder.create();
@@ -42,6 +49,21 @@ public class CommissionSearchService {
         String unifiedCode;
     }
 
+    /**
+     * Check if the fetched record is applicable to the {@code CommissionQuery},
+     * e.g. if the trade value and the instrument price are within the range.
+     * This function was isolated from the SQL query as trade value and price constraints
+     * can be specified in different currencies by different brokers, and it is not feasible
+     * to equip the database with all FX rates.
+     * @param s the commission search query sent by the user
+     * @param rCurrency the currency in which the check is done (and the commission is charged)
+     * @param rInstrumentPriceLower the lower bound of the instrument price
+     * @param rInstrumentPriceUpper the upper bound of the instrument price
+     * @param rTradeValueRangeLower the lower bound of the trade value
+     * @param rTradeValueRangeUpper the upper bound of the trade value
+     * @return true if values of query satisfy all the constraints;
+     *         false otherwise
+     */
     public Boolean checkRecordConstraint(CommissionQuery s,
                                          String rCurrency,
                                          Double rInstrumentPriceLower,
@@ -69,6 +91,22 @@ public class CommissionSearchService {
         return true;
     }
 
+    /**
+     * It calculates the commission amount based on the {@code CommissionQuery}
+     * and values from a broker
+     * @param s the commission search query sent by the user
+     * @param comType the way in which commission is calculated
+     * @param comRate the rate by which commission is charged
+     * @param curCode the currency in which commission is charged
+     * @param minCom the minimum commission charge
+     * @param maxCom the maximum commission charge
+     * @param maxComType the way in which max commission is calculated
+     * @param tierStartQ the quantity the current tier starts from (if applicable)
+     * @param tierStartTV the trade value the current tier starts from (if applicable)
+     * @param additionalCost the amount in addition to the current tier (if applicable)
+     * @return a {@code Quote} object containing commission in original currency
+     *         and unified currency
+     */
     public Quote calculateCom(CommissionQuery s,
                               Integer comType,
                               Double comRate,
@@ -116,6 +154,15 @@ public class CommissionSearchService {
         return ret;
     }
 
+    /**
+     * The customized compare function to sort commission charges by amount and broker name
+     * in the {@code PriorityQueue}.
+     * @param o1 the first element to be compared
+     * @param o2 the second element to be compared
+     * @return -1 if the first should proceed the second in the sorted result
+     *         1 if the second should proceed the first in the sorted result
+     *         0 otherwise
+     */
     Integer compare(JsonObject o1, JsonObject o2){
         if(o1.get("ComAmountUnified").getAsDouble() > o2.get("ComAmountUnified").getAsDouble())
             return 1;
@@ -126,6 +173,13 @@ public class CommissionSearchService {
         }
     }
 
+    /**
+     * It queries the commission database based on the input query, filters out the
+     * non-applicable records, calculates the amount charged by brokers, and sorts
+     * the result.
+     * @param requestBody the commission query sent by the user
+     * @return the sorted result of the query in {@code Json} format
+     */
     public String queryCommissionDB(String requestBody) {
         ComMinimizer.log.info("Received Commission Query: " + requestBody);
         CommissionQuery s = new CommissionQuery(requestBody);

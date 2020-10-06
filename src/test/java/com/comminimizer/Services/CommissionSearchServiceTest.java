@@ -25,7 +25,8 @@ public class CommissionSearchServiceTest {
         // Case 3: Per Quantity (non-tiered) with Max Commission as Trade Value Percentage (Min > Max -> Max is adopted)
         CommissionQuery test3 = new CommissionQuery(" {\"Instr\": \"ACST\", \"InstrType\": 1, \"Market\": \"NCM\", \"Currency\": \"USD\", \"Quantity\": 100, \"QuantityType\": \"shares\", \"AccountType\": 3} ");
         Double t3Res = ss.calculateCom(test3, 2, 0.005, "USD", 0.0, 0.01, 2, 0, 0.0, 0.0).origin;
-        assert t3Res.equals(0.2) : "Expected: 0.2 Got: " + t3Res;
+        Double t3ResExpected = test3.getInstrPrice() * 100 * 0.01;
+        assert t3Res.equals(t3ResExpected) : "Expected: " + t3ResExpected + " Got: " + t3Res;
 
         // Case 4: Per Quantity (non-tiered) with Max Commission as Fixed Rate
         CommissionQuery test4 = new CommissionQuery(" {\"Instr\": \"TSLA\", \"InstrType\": 1, \"Market\": \"NMS\", \"Currency\": \"USD\", \"Quantity\": 1000, \"QuantityType\": \"shares\", \"AccountType\": 3} ");

@@ -12,6 +12,11 @@ import static com.comminimizer.ConfigProperties.*;
 @Service
 public class InstrumentSearchService {
 
+    /**
+     * It fetches the instrument search result from Yahoo API
+     * @param iden the keyword used in the search
+     * @return matching instruments in {@code Json} format
+     */
     public String searchInstrument(String iden) {
         RestTemplate rt = new RestTemplate();
         String url = INSTRUMENT_SEARCH_URL_PREFIX + iden;
