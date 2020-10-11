@@ -3,7 +3,7 @@
     <Appenders>
         <SplunkHttp
                 name="splunk"
-                url="http://localhost:8088"
+                url="http://${env:SPLUNK_HOST}:${env:SPLUNK_PORT}"
                 token="${env:SPLUNK_TOKEN}"
                 index="comminimizer"
                 messageFormat="text%"
